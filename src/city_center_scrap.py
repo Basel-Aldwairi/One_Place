@@ -12,15 +12,25 @@ def scrap_citycenter(link):
     with open('../testing_files/cpu_html_page.txt', 'w', encoding='utf-8') as f:
         f.write(soup.prettify())
 
-    product_name = soup.find('div', class_='tb_wt tb_wt_page_title_system tb_mb_10 display-block tb_system_page_title').text
+    product_name = soup.find('div', class_='tb_wt tb_wt_page_title_system tb_mb_10 display-block tb_system_page_title')
+    if product_name:
+        product_name = product_name.text
+    else:
+        return None, None, None, None, None, None, None
 
     product_description =  soup.find('ul', class_='a-unordered-list a-vertical a-spacing-mini')
 
-    product_description_items = product_description.find_all('li', class_='a-spacing-mini')
+    if product_description:
+        product_description_items = product_description.find_all('li', class_='a-spacing-mini')
 
-    product_description_list = []
-    for item in product_description_items:
-        product_description_list.append(item.text)
+        product_description_list = []
+        for item in product_description_items:
+            product_description_list.append(item.text)
+
+        product_description = product_description_list
+    else:
+        product_description = soup.find('div', class_='tb_wt tb_wt_product_field_system display-block tb_system_product_field_1').text
+
     product_info = soup.find('div', class_='tb_wt tb_wt_product_info_system display-inline-block tb_system_product_info')
 
     product_info_dt = product_info.find_all('dt')
@@ -57,5 +67,5 @@ def scrap_citycenter(link):
     whatsapp_number = ''.join(['+',whatsapp_number])
 
 
-    return link, product_name, product_description_list, currency, price, sale, whatsapp_number
+    return link, product_name, product_description, currency, price, sale, whatsapp_number
 
