@@ -3,6 +3,8 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import pandas as pd
+from collections import deque
+
 start = 'https://citycenter.jo/'
 
 def pattern_exists(link,pattern):
@@ -23,18 +25,18 @@ patterns = [
 
 
 visited = set()
-queue = []
+queue = deque()
 visited.add(start)
 queue.append(start)
-max_depth = 100
+max_depth = 1000
 start_time = time.time()
 num_links_found = 1
 
 current_depth = 0
 print(f'[INFO] : start with link#{num_links_found} : {start}')
 
-while queue and current_depth < max_depth:
-    current_link = queue.pop()
+while queue:
+    current_link = queue.popleft()
     current_depth += 1
     response = requests.get(current_link)
     new_link_found = False
@@ -50,7 +52,8 @@ while queue and current_depth < max_depth:
             num_links_found += 1
             print(f'[INFO depth = {current_depth} / {max_depth}] : link #{num_links_found} : {link}')
             visited.add(link)
-            queue.append(link)
+            if len(link) <= 90:
+                queue.append(link)
             new_link_found = True
 
     if not new_link_found:
