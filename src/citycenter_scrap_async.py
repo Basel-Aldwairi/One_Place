@@ -37,49 +37,57 @@ async def scrap_citycenter(session : requests.Session ,link):
 
             product_info = soup.find('div', class_='tb_wt tb_wt_product_info_system display-inline-block tb_system_product_info')
 
-            product_info_dt = product_info.find_all('dt')
+            if product_info:
+                product_info_dt = product_info.find_all('dt')
 
-            product_info_dt = [item.text[:-1] for item in product_info_dt]
+                product_info_dt = [item.text[:-1] for item in product_info_dt]
 
-            product_info_dd = product_info.find_all('dd')
+                product_info_dd = product_info.find_all('dd')
 
-            product_info_dd = [item.text for item in product_info_dd]
+                product_info_dd = [item.text for item in product_info_dd]
 
-            # product_info = zip(product_info_dt,product_info_dd)
+
+                # product_info = zip(product_info_dt,product_info_dd)
 
             price_tag = soup.find('div', class_='price')
 
-            price_regular = price_tag.find('span', class_='price-regular')
-
-            price_old = price_tag.find('span', class_='price-old')
-            price_new = price_tag.find('span', class_='price-new')
-
             price = None
             sale = None
+            currency = None
+            if price_tag:
+                price_regular = price_tag.find('span', class_='price-regular')
 
-            def get_price(price_list):
-                price_list = price_list.replace('\n', '').split()
-                currency = price_list[0]
-                price = price_list[1]
-                return currency, price
+                price_old = price_tag.find('span', class_='price-old')
+                price_new = price_tag.find('span', class_='price-new')
 
-            if price_regular:
-                currency, price = get_price(price_regular.text)
-                sale = None
-            elif price_old:
-                price = price_old.text
-                sale = price_new.text
-                currency, price = get_price(price)
-                currency, sale = get_price(sale)
+
+
+                def get_price(price_list):
+                    price_list = price_list.replace('\n', '').split()
+                    currency = price_list[0]
+                    price = price_list[1]
+                    return currency, price
+
+                if price_regular:
+                    currency, price = get_price(price_regular.text)
+                    sale = None
+                elif price_old:
+                    price = price_old.text
+                    sale = price_new.text
+                    currency, price = get_price(price)
+                    currency, sale = get_price(sale)
 
 
             whatsapp_button = soup.find('a', id= 'whatsapp-btn-pro')
-            whatsapp_number =  whatsapp_button.get_attribute_list('href')[0][-12:]
-            whatsapp_number = ''.join(['+',whatsapp_number])
+            whatsapp_number = None
+            if whatsapp_button:
+                whatsapp_number =  whatsapp_button.get_attribute_list('href')[0][-12:]
+                whatsapp_number = ''.join(['+',whatsapp_number])
 
 
             return page_text,link, product_name, product_description, currency, price, sale, whatsapp_number
 
     except Exception as e:
-        return page_text,link, None, None, None, None, None, None
+        print(e)
+        return page_text,link, 'er', None, None, None, None, None
 

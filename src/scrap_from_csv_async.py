@@ -10,7 +10,7 @@ async def main():
     df = pd.read_csv('all_found_links_search.csv',index_col=0)
     links_list = df['Links'].to_list()
 
-    # links_list = links_list[:100]
+    links_list = links_list[:1]
 
     len_links = len(links_list)
     scraped = []
@@ -24,6 +24,10 @@ async def main():
 
     async with aiohttp.ClientSession() as session:
 
+        session.headers.update({
+            'User-Agent': 'MyCustomAgent/1.0',
+            'Accept': 'application/json'
+        })
         async def bound_fetch(link):
             async with semaphore:
                 try:
@@ -37,6 +41,7 @@ async def main():
                     # print(f'[ERROR {i + 1} / {len_links}] : link : {link}')
                     error.append(link)
                     error_name.append(str(e))
+                    print(e)
                 # finally:
                 #     raw_texts.append((link,page_text))
 
