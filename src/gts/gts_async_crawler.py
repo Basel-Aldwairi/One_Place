@@ -83,8 +83,5 @@ async def crawl_gts():
 
 
 
-
-
-
 asyncio.run(crawl_gts())
 

@@ -9,7 +9,7 @@ def scrap_citycenter(link):
     page_text = requests.get(link).text
     soup = BeautifulSoup(page_text,parser='lxml',features='lxml')
 
-    with open('../testing_files/cpu_html_page.txt', 'w', encoding='utf-8') as f:
+    with open('../../testing_files/cpu_html_page.txt', 'w', encoding='utf-8') as f:
         f.write(soup.prettify())
 
     product_name = soup.find('div', class_='tb_wt tb_wt_page_title_system tb_mb_10 display-block tb_system_page_title')

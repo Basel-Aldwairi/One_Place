@@ -1,18 +1,21 @@
 import requests
 import aiohttp
+import asyncio
 from bs4 import BeautifulSoup
+# from src.Generic.scrap_from_csv_async import scrap_all_urls
 
 # reg_price = 'https://citycenter.jo/computer-hardware/components-cpu-and-processor/amd-ryzen-9-9900x3d-12-core-4-4ghz-5-5-ghz-max-boost-140mb-cache-am5-desktop-processor-tray'
 # old_new_price = 'https://citycenter.jo/computer-hardware/components-cpu-and-processor/amd-ryzen-9-9950x3d-16-core-4-3ghz-5-7-ghz-max-boost-132mb-cache-am5-desktop-processor-tray'
 #
 
+# @scrap_all_urls
 async def scrap_citycenter(session : requests.Session ,link):
     try:
         async with session.get(link) as response:
             page_text = await response.text()
             soup = BeautifulSoup(page_text,parser='lxml',features='lxml')
 
-            with open('../testing_files/cpu_html_page.txt', 'w', encoding='utf-8') as f:
+            with open('../../testing_files/cpu_html_page.txt', 'w', encoding='utf-8') as f:
                 f.write(soup.prettify())
 
             product_name = soup.find('div', class_='tb_wt tb_wt_page_title_system tb_mb_10 display-block tb_system_page_title')
@@ -91,3 +94,9 @@ async def scrap_citycenter(session : requests.Session ,link):
         print(e)
         return page_text,link, 'er', None, None, None, None, None
 
+
+# @scrap_all_urls
+# async def run_citycenter(session, link):
+#     return await scrap_citycenter(session, link)
+
+# asyncio.run(scrap_citycenter())

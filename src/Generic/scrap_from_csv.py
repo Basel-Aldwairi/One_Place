@@ -1,8 +1,8 @@
 import pandas as pd
 import time
-import city_center_scrap
+from src.citycenter import city_center_scrap
 
-df = pd.read_csv('all_found_links_search.csv',index_col=0)
+df = pd.read_csv('../citycenter/all_found_links_search.csv', index_col=0)
 links_list = df['Links'].to_list()
 
 # links_list = links_list[:40]
