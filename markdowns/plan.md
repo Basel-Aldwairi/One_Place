@@ -44,6 +44,21 @@ ___
 
 ___
 
+### Product Information
+
+- URL
+- SDK
+- Product Name
+- Product Description
+- Availability
+- Brand
+- Original Price
+- Current Price
+- Currency
+
+
+___
+
 ### Chatgbt
 
 Feasible Redesign (for 2 students, 1 semester)

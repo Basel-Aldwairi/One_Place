@@ -81,11 +81,11 @@ async def scrap_all_urls(site_func, links_path, output_path):
 
 
 async def run_citycenter():
-    return await scrap_all_urls(scrap_citycenter,'../citycenter/all_found_links_search.csv',
+    return await scrap_all_urls(scrap_citycenter, '../citycenter/all_found_links_search.csv',
                            '../citycenter/scrapped_data.csv')
 
 async def run_gts():
-    return await scrap_all_urls(scrap_gts_url,'../gts/gts_urls.csv',
+    return await scrap_all_urls(scrap_gts_url, '../gts/gts_urls.csv',
                            '../gts/scrapped_data.csv')
 
 
@@ -93,4 +93,4 @@ async def run_gts():
 if __name__ == '__main__':
     pass
     # asyncio.run()
-    asyncio.run(run_gts())
+    asyncio.run(run_citycenter())

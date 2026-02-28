@@ -75,7 +75,6 @@ async def scrap_gts_url(session: aiohttp.ClientSession, url):
 
     return url, product_name, product_tag,product_brand, status_availabity, currency, price, sale, product_description
 
-
 #
 # link = 'https://gts.jo/en/headset-ovling-gaming-p1-aux'
 #

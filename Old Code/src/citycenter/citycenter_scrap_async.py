@@ -88,7 +88,7 @@ async def scrap_citycenter(session : requests.Session ,link):
                 whatsapp_number = ''.join(['+',whatsapp_number])
 
 
-            return page_text,link, product_name, product_description, currency, price, sale, whatsapp_number
+            return page_text ,link, product_name, product_description, currency, price, sale, whatsapp_number
 
     except Exception as e:
         print(e)
