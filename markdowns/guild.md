@@ -64,3 +64,4 @@ ___
 - WhiteAngle
 - MicroElektron
 - Leaders*
+- basel
