@@ -47,7 +47,7 @@ ___
 ### Product Information
 
 - URL
-- SDK
+- Product Code
 - Product Name
 - Product Description
 - Availability
