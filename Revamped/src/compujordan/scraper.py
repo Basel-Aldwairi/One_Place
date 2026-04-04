@@ -78,10 +78,15 @@ async def scrap_url(session, semaphore, url,  categories=None):
             properties = {}
 
             if found_tables:
-                df = pd.read_html(StringIO(soup.prettify()))[0]
-                df.columns = ['Specification', 'Value']
-                properties = {l[0]: l[1] for l in df.to_numpy()}
+                try:
+                    df = pd.read_html(StringIO(soup.prettify()))[0]
 
+                    if df.shape[1] >= 2:
+                        df = df.iloc[:, :2]
+                        df.columns = ['Specification', 'Value']
+                        properties = {str(l[0]): str(l[1]) for l in df.to_numpy()}
+                except Exception as e:
+                    print(f'Table skipped on {url} : {e}')
 
             # Image URL
             thumbnail_tag = soup.find('a', class_='thumbnail')
