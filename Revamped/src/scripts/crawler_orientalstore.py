@@ -53,12 +53,12 @@ async def crawl_base_url(session, semaphore,  base_url):
 
             # The url that will iterate over the page counter
             search_base_url = base_url + page_url_addition
-            print(search_base_url)
+            # print(search_base_url)
 
             # Iterate over every page in that category
             for i in range(1, num_pages + 1):
                 # Debugging, will replace with tqdm later on
-                print(f'{base_url} : {i}/{num_pages}')
+                # print(f'{base_url} : {i}/{num_pages}')
 
                 # GET request and Parsing
                 search_url = search_base_url + str(i)
@@ -73,7 +73,7 @@ async def crawl_base_url(session, semaphore,  base_url):
 
                 # Get every item on the page
                 all_caption_tags = soup.find_all('div', class_='caption')
-                print(len(all_caption_tags))
+                # print(len(all_caption_tags))
                 # Iterate over every item
                 for caption in all_caption_tags:
                     # Get item url
@@ -96,5 +96,5 @@ async def crawl_base_url(session, semaphore,  base_url):
 
         # Error handling
         except Exception as e:
-            print(f'failed to crawl {base_url} : {e}')
+            # print(f'failed to crawl {base_url} : {e}')
             return all_urls

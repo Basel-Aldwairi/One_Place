@@ -112,9 +112,9 @@ def preprocess_file(file_path):
     valid_df.loc[valid_df['product_description'] == 'Unknown', 'product_description'] = 'No Description'
 
     # Concatenate the features that will be used in embeddings
-    model_text = (valid_df['brand'] + ' ' +
-                  valid_df['product_name'] + ' ' +
-                  valid_df['specs'])
+    model_text = (valid_df['product_name'] + ' ' +
+                  valid_df['specs'] + ' ' +
+                    valid_df['categories'])
 
     # Add embeddings text into the DataFrame
     valid_df['model_text'] = model_text
