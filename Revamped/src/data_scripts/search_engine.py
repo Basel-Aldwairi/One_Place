@@ -6,6 +6,19 @@ from rank_bm25 import BM25Okapi
 from rapidfuzz import fuzz, process
 
 
+def combine_indicies(search_method_indicies_list):
+
+    combined_dict = {}
+
+    for search_method_indicies in search_method_indicies_list:
+        for rank, index in enumerate(search_method_indicies):
+            if index not in combined_dict:
+                combined_dict[index] = 0
+            combined_dict[index] += 1 / (rank + 1)
+
+    return combined_dict
+
+
 class SearchEngine:
 
     def __init__(self):
@@ -26,34 +39,33 @@ class SearchEngine:
         print('Loading model...')
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
 
-
-
-
-    def search_query(self,query, top_k = 5):
-
-
+    def fuzzy_search(self,query):
         code_matchs = process.extract(query, self.products_df['product_code'].to_list(), limit=top_k)
-        # print(code_matchs)
-        relevant_codes = [code for code, score, _ in code_matchs if score >= 90]
 
-        items = []
+        relevant_codes = {code for code, score, _ in code_matchs if score >= 80}
+
+        item_indicies = []
         if relevant_codes:
             for code in relevant_codes:
-                item = self.products_df[self.products_df['product_code'] == code].to_dict()
-                items.append(item)
-            return items
+                item_index = self.products_df[self.products_df['product_code'] == code].index.tolist()
+                for idx in item_index:
+                    item_indicies.append(idx)
 
-        query = query.lower()
+                # for idx in range(len(items_df)):
+                #     item = items_df.iloc[idx].to_dict()
+                #     items.append(item)
 
+            return self.get_items(item_indicies)
+        return None
 
-        # print('Embeddings query...')
+    def faiss_search(self,query):
+
         query_vector = self.model.encode([query])
 
         # print('Searching...')
         distances, faiss_indices_nested = self.index.search(query_vector, top_k)
         faiss_indices = faiss_indices_nested[0]
         # print(f'{distances = }')
-
 
         faiss_distance_cutoff = 0.8
 
@@ -63,14 +75,14 @@ class SearchEngine:
                 break
             filtered_faiss_indices.append(faiss_indices[index])
 
-        # print(f'{filtered_faiss_indices = }')
+        return filtered_faiss_indices
 
+
+    def bm25_search(self,query):
 
         tokenized_query = query.split()
         bm25_scores = self.bm25.get_scores(tokenized_query)
         bm25_indices = np.argsort(bm25_scores)[::-1][:top_k]
-        # print(f'{bm25_scores[bm25_indices] = }')
-        # print(f'{bm25_indices = }')
 
         filtered_bm25_indices = []
         max_score = bm25_scores[bm25_indices[0]]
@@ -79,19 +91,10 @@ class SearchEngine:
             if bm25_scores[index] > accepnted_score:
                 filtered_bm25_indices.append(index)
 
-        # print(f'{filtered_bm25_indices = }')
+        return filtered_bm25_indices
 
-        combined_indicies = {}
 
-        for rank, index in enumerate(filtered_faiss_indices):
-            if index not in combined_indicies:
-                combined_indicies[index] = 0
-            combined_indicies[index] += 1 / (rank + 1)
-
-        for rank, index in enumerate(filtered_bm25_indices):
-            if index not in combined_indicies:
-                combined_indicies[index] = 0
-            combined_indicies[index] += 1 / (rank + 1)
+    def multi_vendor_search(self,combined_indicies):
 
         expanded_indices = {}
 
@@ -100,17 +103,46 @@ class SearchEngine:
 
             product_indicies = self.products_df[self.products_df['product_code'] == index_product_code].index
             rank = combined_indicies[index]
-            # print(f'{product_indicies = }')
 
             for idx in product_indicies:
                 if idx not in expanded_indices:
                     expanded_indices[idx] = rank
 
-        ranked_indices = sorted(expanded_indices.keys(), key=lambda x: expanded_indices[x], reverse=True)
+        return expanded_indices
 
-        for index in ranked_indices:
+
+    def get_items(self, indices):
+        items = []
+        for index in indices:
             item = self.products_df.iloc[index].to_dict()
             items.append(item)
+
+        return items
+
+    def search_query(self,query, top_k = 5):
+
+
+        items = self.fuzzy_search(query)
+
+        if items:
+            return items
+
+        query = query.lower()
+
+
+        # print('Embeddings query...')
+
+        faiss_indices = self.faiss_search(query)
+
+        bm25_indices = self.bm25_search(query)
+
+        combined_indicies = combine_indicies([faiss_indices, bm25_indices])
+
+        expanded_indices = self.multi_vendor_search(combined_indicies)
+
+        ranked_indices = sorted(expanded_indices.keys(), key=lambda x: expanded_indices[x], reverse=True)
+
+        items = self.get_items(ranked_indices)
 
         return items
 
@@ -134,4 +166,3 @@ if __name__ == '__main__':
 
             for item in items:
                 print(item)
-
