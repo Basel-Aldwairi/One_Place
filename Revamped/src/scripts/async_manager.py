@@ -50,12 +50,12 @@ async def scrap_products(urls, categories, max_concurrent_requests = 5):
         results = await tqdm_asyncio.gather(*tasks, desc='Scraping urls')
         return results
 
-def scrap_all(max_urls = 'all'):
+def scrap_all(max_urls:str = 'all'):
     df = None
     if max_urls == 'all':
         df = pd.read_csv('../../data/compujordan/compujordan_crawl.csv')
     else:
-        df = pd.read_csv('../../data/compujordan/compujordan.csv').loc[:max_urls]
+        df = pd.read_csv('../../data/compujordan/compujordan.csv').loc[:int(max_urls)]
 
     urls = df['urls'].to_list()
     categories = df['categories'].to_list()

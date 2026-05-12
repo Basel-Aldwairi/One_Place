@@ -1,5 +1,3 @@
-import argparse
+a = list(range(10))
 
-parser = argparse.ArgumentParser(description='Testing File')
-
-parser.add_arguent('-')
+print(a)

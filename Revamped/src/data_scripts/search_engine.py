@@ -4,7 +4,7 @@ import faiss
 from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
 from rapidfuzz import fuzz, process
-
+import os
 
 def combine_indicies(search_method_indicies_list):
 
@@ -21,25 +21,36 @@ def combine_indicies(search_method_indicies_list):
 
 class SearchEngine:
 
-    def __init__(self):
-        print('Reading files...')
-        self.products_df = pd.read_csv('../../data/all/all_products.csv', index_col=0)
-        self.embeddings = np.load('../../data/all/embeddings.npy')
+    def __init__(self, static = False):
 
-        dimensions = self.embeddings.shape[1]
-        print('Creating FAISS vectors...')
+        base_dir = os.path.dirname(os.path.abspath(__file__))
 
-        self.index = faiss.IndexFlatL2(dimensions)
-        self.index.add(self.embeddings)
+        csv_path = os.path.join(base_dir, '..', '..', 'data', 'all', 'all_products.csv')
+        embeddings_path = os.path.join(base_dir, '..', '..', 'data', 'all', 'embeddings.npy')
 
-        tokenized_corpus = [str(corpus).split() for corpus in self.products_df['model_text'].to_list()]
-        self.bm25 = BM25Okapi(tokenized_corpus)
+        self.products_df = pd.read_csv(csv_path, index_col=0)
+
+        if not static:
+            print('Reading files...')
+            self.products_df = pd.read_csv(csv_path, index_col=0)
+            self.embeddings = np.load(embeddings_path)
+
+            dimensions = self.embeddings.shape[1]
+            print('Creating FAISS vectors...')
+
+            self.index = faiss.IndexFlatL2(dimensions)
+            self.index.add(self.embeddings)
+
+            tokenized_corpus = [str(corpus).split() for corpus in self.products_df['model_text'].to_list()]
+            self.bm25 = BM25Okapi(tokenized_corpus)
 
 
-        print('Loading model...')
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+            print('Loading model...')
+            self.model = SentenceTransformer('all-MiniLM-L6-v2')
 
-    def fuzzy_search(self,query):
+        # print(self.products_df.head())
+
+    def fuzzy_search(self,query, top_k = 10):
         code_matchs = process.extract(query, self.products_df['product_code'].to_list(), limit=top_k)
 
         relevant_codes = {code for code, score, _ in code_matchs if score >= 80}
@@ -58,12 +69,12 @@ class SearchEngine:
             return self.get_items(item_indicies)
         return None
 
-    def faiss_search(self,query):
+    def faiss_search(self,query,top_k):
 
         query_vector = self.model.encode([query])
 
         # print('Searching...')
-        distances, faiss_indices_nested = self.index.search(query_vector, top_k)
+        distances, faiss_indices_nested = self.index.search(query_vector,top_k)
         faiss_indices = faiss_indices_nested[0]
         # print(f'{distances = }')
 
@@ -78,7 +89,7 @@ class SearchEngine:
         return filtered_faiss_indices
 
 
-    def bm25_search(self,query):
+    def bm25_search(self,query,top_k):
 
         tokenized_query = query.split()
         bm25_scores = self.bm25.get_scores(tokenized_query)
@@ -122,7 +133,7 @@ class SearchEngine:
     def search_query(self,query, top_k = 5):
 
 
-        items = self.fuzzy_search(query)
+        items = self.fuzzy_search(query,top_k)
 
         if items:
             return items
@@ -132,9 +143,9 @@ class SearchEngine:
 
         # print('Embeddings query...')
 
-        faiss_indices = self.faiss_search(query)
+        faiss_indices = self.faiss_search(query,top_k)
 
-        bm25_indices = self.bm25_search(query)
+        bm25_indices = self.bm25_search(query,top_k)
 
         combined_indicies = combine_indicies([faiss_indices, bm25_indices])
 
@@ -147,7 +158,13 @@ class SearchEngine:
         return items
 
 
+    def search_static(self,query,top_k = 5):
 
+        indicies_list = list(range(top_k))
+
+        items = self.get_items(indicies_list)
+
+        return items
 
 if __name__ == '__main__':
 
