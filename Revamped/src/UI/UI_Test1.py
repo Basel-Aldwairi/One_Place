@@ -8,11 +8,15 @@ if str(root_path) not in sys.path:
 
 import data_scripts.search_engine as search_engine
 import streamlit as st
+import asyncio
+import aiohttp
+from io import BytesIO
+from PIL import Image
 
 st.set_page_config(
 
-    page_title="One Place",
-    layout='wide',
+    page_title = "One Place",
+    layout = 'wide',
 
 )
 
@@ -22,57 +26,92 @@ if 'top_k' not in st.session_state:
     st.session_state['top_k'] = 8
 if 'query' not in st.session_state:
     st.session_state['query'] = ""
+if 'max_concurrent_calls' not in st.session_state:
+    st.session_state['max_concurrent_calls'] = 5
+if 'has_results' not in st.session_state:
+    st.session_state['has_results'] = False
+if 'products' not in st.session_state:
+    st.session_state['products'] = []
+if 'downloaded_images' not in st.session_state:
+    st.session_state['downloaded_images'] = []
+
 
 # UI Test Layout
-st.title("📍 OnePlace")
-st.header("No Where Else!")
-st.subheader("Find what you need, right near you.")
+st.header("1Place")
+st.header("NO WHERE ELSE!")
+top_k = st.sidebar.slider('top_k', min_value=1, max_value=50, value=10, step=1)
+max_concurrent_calls = st.sidebar.slider('max_concurrent_calls', min_value=1, max_value=10, value=5, step=1)
 
-st.sidebar.slider('top_k', min_value=1, max_value=50, value=10, step=1)
+if top_k != st.session_state['top_k']:
+    st.session_state['top_k'] = top_k
 
-
-product_names = [""] + list(inventory.keys())
-
-col1, col2 = st.columns(2)
+if max_concurrent_calls != st.session_state['max_concurrent_calls']:
+    st.session_state['max_concurrent_calls'] = max_concurrent_calls
 
 search_query = st.text_input("Search for a product:")
+
+# --- ASYNC IMAGE FETCHING LOGIC ---
+
+async def fetch_image(session, url, semaphore):
+    """Fetches a single image asynchronously and converts it for Streamlit."""
+    async with semaphore:
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.read()
+                    return Image.open(BytesIO(data))
+                return None
+        except Exception:
+            return None
+
+
+async def fetch_all_images(urls, semaphore_count):
+    """Gathers all image fetch tasks and runs them concurrently."""
+    semaphore = asyncio.Semaphore(semaphore_count)
+
+    async with aiohttp.ClientSession() as session:
+        # Create a list of tasks for all URLs
+        tasks = [fetch_image(session, url,semaphore) for url in urls]
+        # asyncio.gather runs them all at the exact same time
+        return await asyncio.gather(*tasks)
 
 if search_query:
     st.session_state['query'] = search_query
 
+
+
 # Display Results
 if st.button("Search"):
     products = st.session_state['search_engine'].search_static(st.session_state['query'],st.session_state['top_k'])
+    # for product in products:
+    #     print(product)
 
-    for product in products:
-        print(product)
-    #
-    # st.divider()
-    # st.markdown(f"### {search_query}")
-    #
-    # col1, col2 = st.columns(2)
-    #
-    # with col2:
-    #     # Check if a discount exists and render the custom HTML
-    #     # I used Gemini to get this HTML code :)
-    #     if product["discounted_price"]:
-    #         savings = product['original_price'] - product['discounted_price']
-    #
-    #         pricing_html = f"""
-    #         <div>
-    #             <span style='color: #C00000; font-size: 26px; font-weight: bold;'>JOD {product['discounted_price']:.2f}</span><br>
-    #             <span style='color: #888888; text-decoration: line-through; font-size: 18px; font-weight: bold;'>JOD {product['original_price']:.2f}</span><br>
-    #             <div style='background-color: #1AA31A; color: white; padding: 4px 8px; display: inline-block; font-weight: bold; margin-top: 5px; font-size: 16px; border-radius: 4px;'>
-    #                 You save JOD {savings:.2f}
-    #             </div>
-    #         </div>
-    #         """
-    #         st.markdown(pricing_html, unsafe_allow_html=True)
-    #
-    #     else:
-    #         # Standard formatting for items with no discount
-    #         st.markdown(f"<span style='font-size: 20px; font-weight: bold;'>JOD {product['original_price']:.2f}</span>",
-    #                     unsafe_allow_html=True)
-    #
-    # st.write("**Description:**")
-    # st.info(product["description"])
+    # 1. Extract all URLs from our results
+    image_urls = [item["image_url"] for item in products]
+
+
+
+    # 2. Show a loading spinner while we fetch them asynchronously
+    with st.spinner("Fetching live inventory and images..."):
+        # asyncio.run() blocks the script until all async tasks finish
+        downloaded_images = asyncio.run(fetch_all_images(image_urls,st.session_state['max_concurrent_calls']))
+
+    st.session_state['products'] = products
+    st.session_state['downloaded_images'] = downloaded_images
+    st.session_state['has_results'] = True
+
+
+
+if st.session_state['has_results']:
+    cols = st.columns(3)
+
+    for index, item in enumerate(st.session_state['products']):
+        col_index = index % 3
+
+        with cols[col_index]:
+            with st.container(border=True):
+
+                st.image(st.session_state['downloaded_images'][index])
+                st.markdown(f"#### {item["product_name"]}")
+
+
