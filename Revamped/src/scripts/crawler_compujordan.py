@@ -55,7 +55,7 @@ async def crawl_base_url(session, semaphore,  base_url):
             # Iterate over every page in that category
             for i in range(1, num_pages + 1):
                 # Debugging, will replace with tqdm later on
-                print(f'{base_url} : {i}/{num_pages}')
+                # print(f'{base_url} : {i}/{num_pages}')
 
                 # GET request and Parsing
                 search_url = search_base_url + str(i)
@@ -94,5 +94,5 @@ async def crawl_base_url(session, semaphore,  base_url):
 
         # Error handling
         except Exception as e:
-            print(f'failed to crawl {base_url} : {e}')
+            # print(f'failed to crawl {base_url} : {e}')
             return all_urls

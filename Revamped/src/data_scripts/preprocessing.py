@@ -80,7 +80,7 @@ def clean_categories(categories_string):
 def preprocess_file(file_path):
 
     # Read CSV file
-    df = pd.read_csv(file_path, index_col=0)
+    df = pd.read_csv(file_path)
 
     # Filter out all the out-of-stock products
     valid_df = df[df['in_stock'] == True].copy()

@@ -1,3 +1,6 @@
-a = list(range(10))
+s = {
+    'asd' :0,
+    'weq' : '123'
+}
 
-print(a)
+print(s)

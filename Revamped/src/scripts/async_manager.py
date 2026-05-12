@@ -1,41 +1,72 @@
 import pandas as pd
+import aiohttp
+from tqdm.asyncio import tqdm_asyncio
+import asyncio
+import argparse
+from dataclasses import dataclass
+from typing import Any, Callable, Dict
+
 import scraper_compujordan
 import scraper_orientalstore
-import aiohttp
-import asyncio
 import crawler_compujordan
 import crawler_orientalstore
-from tqdm.asyncio import tqdm_asyncio
-import argparse
 
-scraper = None
-crawler = None
+
+
 
 class ArgumentsError(Exception):
-    """Raised when there is a problem with arguments"""
     pass
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Async Scraper and Crawler.\n'"NOTE : store 'all' and operation 'both' are currently not supported.")
-    parser.add_argument('-s','--store',default='all',help='''
+    parser = argparse.ArgumentParser(
+        description='Async Scraper and Crawler.\n'"NOTE : store 'all' and operation 'both' are currently not supported.")
+    parser.add_argument('-s', '--store', default='all', help='''
     Select Store to scrap or crawl:
     all : all stores (default)
     cj : compujordan
     os : oriental store
     ''')
-    parser.add_argument('-o','--operation',default='both',help='''
+    parser.add_argument('-o', '--operation', default='both', help='''
     Select Operation:
     b : both (default)
     s : scrap
     c : crawl''')
-    parser.add_argument('-m','--maxurls',default='all',help='''
+    parser.add_argument('-m', '--maxurls', default='all', help='''
     Select Max number of urls to scrap:
     all : all urls (default)
     ''')
     return parser.parse_args()
 
-async def scrap_products(urls, categories, max_concurrent_requests = 5):
+
+@dataclass
+class Store:
+    name: str
+    scraper_module: Any
+    crawler_module: Any
+    crawl_csv_path: str
+    products_csv_path: str
+
+
+STORES = {
+    'cj': Store(
+        name='Compu Jordan',
+        crawler_module=crawler_compujordan,
+        scraper_module=scraper_compujordan,
+        crawl_csv_path='../../data/compujordan/compujordan_crawl.csv',
+        products_csv_path='../../data/compujordan/compujordan_products.csv',
+    ),
+    'os': Store(
+        name='Oriental Store',
+        crawler_module=crawler_orientalstore,
+        scraper_module=scraper_orientalstore,
+        crawl_csv_path='../../data/oriental_store/oriental_store_crawl.csv',
+        products_csv_path='../../data/oriental_store/oriental_store_products.csv'
+    )
+}
+
+
+async def scrap_products(store_module: Store, urls: list[str], categories: list[str], max_concurrent_requests: int = 5):
     semaphore = asyncio.Semaphore(max_concurrent_requests)
 
     async with aiohttp.ClientSession() as session:
@@ -44,50 +75,55 @@ async def scrap_products(urls, categories, max_concurrent_requests = 5):
         for index in range(len(urls)):
             url = urls[index]
             category = categories[index]
-            task = scraper.scrap_url(session, semaphore, url, category)
+            task = store_module.scraper_module.scrap_url(session, semaphore, url, category)
             tasks.append(task)
 
         results = await tqdm_asyncio.gather(*tasks, desc='Scraping urls')
         return results
 
-def scrap_all(max_urls:str = 'all'):
-    df = None
-    if max_urls == 'all':
-        df = pd.read_csv('../../data/compujordan/compujordan_crawl.csv')
-    else:
-        df = pd.read_csv('../../data/compujordan/compujordan.csv').loc[:int(max_urls)]
+
+def scrap_all(store_module: Store, max_urls: str = 'all'):
+    df = pd.read_csv(store_module.crawl_csv_path)
+    if max_urls != 'all':
+        try:
+            df = df.head(int(max_urls))
+        except ValueError as e:
+            raise ArgumentsError(f"max_urls must either be 'all' or an integer") from e
 
     urls = df['urls'].to_list()
     categories = df['categories'].to_list()
 
-    products = asyncio.run(scrap_products(urls, categories))
+    products = asyncio.run(scrap_products(store_module, urls, categories))
 
     valid_products = [p for p in products if p is not None]
 
     df_products = pd.DataFrame(valid_products)
-    df_products.to_csv('../../data/compujordan/compujordan_products.csv')
+    df_products.to_csv(store_module.products_csv_path, index=False)
 
 
-async def crawl_urls(urls, max_concurrent_requests = 5):
+async def crawl_urls(store_module: Store, urls: list[str], max_concurrent_requests: int = 5):
     semaphore = asyncio.Semaphore(max_concurrent_requests)
 
     async with aiohttp.ClientSession() as session:
         tasks = []
 
         for url in urls:
-            task = crawler.crawl_base_url(session, semaphore, url)
+            task = store_module.crawler_module.crawl_base_url(session, semaphore, url)
             tasks.append(task)
 
         results = await tqdm_asyncio.gather(*tasks, desc='Crawling urls')
         return results
 
 
-def crawl_all(max_urls = 'all'):
-    base_urls = crawler.get_base_urls()
+def crawl_all(store_module: Store, max_urls:str='all'):
+    base_urls = store_module.crawler_module.get_base_urls()
     if max_urls != 'all':
-        base_urls = base_urls[:max_urls]
+        try:
+            base_urls = base_urls[:int(max_urls)]
+        except ValueError as e:
+            raise ArgumentsError(f"max_urls must either be 'all' or an integer") from e
 
-    crawl_results = asyncio.run(crawl_urls(base_urls))
+    crawl_results = asyncio.run(crawl_urls(store_module,base_urls))
 
     all_urls = {}
     for result in crawl_results:
@@ -98,62 +134,32 @@ def crawl_all(max_urls = 'all'):
             else:
                 all_urls[url].update(categories)
 
-
     crawl_dict = {
-        'urls' : [],
-        'categories' : [],
+        'urls': [],
+        'categories': [],
     }
     for url, categories in all_urls.items():
         crawl_dict['urls'].append(url)
         crawl_dict['categories'].append(categories)
 
     df = pd.DataFrame.from_dict(crawl_dict)
-    df.to_csv('../../data/compujordan/compujordan_crawl_testing.csv')
+    df.to_csv(store_module.crawl_csv_path, index=False)
 
 
 if __name__ == '__main__':
 
     args = parse_args()
 
-    store = args.store
-    operation = args.operation
-    max_urls = args.maxurls
-
-    if store not in {'all', 'cj', 'os'}:
-        raise ArgumentsError(f"store argument must be one of 'all', 'cj', or 'os'")
-
-    if operation not in {'both', 'c', 's'}:
-        raise ArgumentsError(f"operation argument must be one of 'both', 'c', or 's'")
-
     try:
-        if max_urls != 'all':
-            max_urls = int(max_urls)
+        store = STORES[args.store]
+    except KeyError as e:
+        raise ArgumentsError(f"store argument must be one of {list(STORES.keys())}")
 
-    except ValueError as e:
-        raise ArgumentsError(f"max_urls must either be 'all' or an integer") from e
+    operation = args.operation
 
-    # print(f'''
-    #     {store = }
-    #     {operation = }
-    #     {max_urls = }
-    #     ''')
+    if operation in {'c', 'both'}:
+        crawl_all(store, max_urls=args.maxurls)
 
-    if store == 'cj':
-        scraper = scraper_compujordan
-        crawler = crawler_compujordan
-    if store == 'os':
-        scraper = scraper_orientalstore
-        crawler = crawler_orientalstore
-
-
-    if operation == 'c':
-        crawl_all()
-    if operation == 's':
-        scrap_all()
-
-    # crawl_all()
-    # scrap_all()
-
-
-
+    if operation in {'s', 'both'}:
+        scrap_all(store, max_urls=args.maxurls)
 

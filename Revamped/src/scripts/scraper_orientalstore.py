@@ -116,5 +116,5 @@ async def scrap_url(session, semaphore, url,  categories=None):
 
         # Error Handling
         except Exception as e:
-            print(f'failed to scrap {url} : {e}')
+            # print(f'failed to scrap {url} : {e}')
             return None

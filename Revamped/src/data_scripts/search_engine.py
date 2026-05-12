@@ -28,11 +28,11 @@ class SearchEngine:
         csv_path = os.path.join(base_dir, '..', '..', 'data', 'all', 'all_products.csv')
         embeddings_path = os.path.join(base_dir, '..', '..', 'data', 'all', 'embeddings.npy')
 
-        self.products_df = pd.read_csv(csv_path, index_col=0)
+        self.products_df = pd.read_csv(csv_path)
 
         if not static:
             print('Reading files...')
-            self.products_df = pd.read_csv(csv_path, index_col=0)
+            # self.products_df = pd.read_csv(csv_path, index_col=0)
             self.embeddings = np.load(embeddings_path)
 
             dimensions = self.embeddings.shape[1]
@@ -124,9 +124,20 @@ class SearchEngine:
 
     def get_items(self, indices):
         items = []
+
+        gaming_builds_items = []
         for index in indices:
             item = self.products_df.iloc[index].to_dict()
-            items.append(item)
+            item.pop('Unnamed: 0', None)
+            if item['product_code'] not in {'GAMING BUILD', 'OS BUILD'}:
+                items.append(item)
+
+            else:
+                gaming_builds_items.append(item)
+
+        if gaming_builds_items:
+            for item in gaming_builds_items:
+                items.append(item)
 
         return items
 
