@@ -6,22 +6,16 @@ from rank_bm25 import BM25Okapi
 from rapidfuzz import fuzz, process
 import os
 
-def combine_indicies(search_method_indicies_list):
-
-    combined_dict = {}
-
-    for search_method_indicies in search_method_indicies_list:
-        for rank, index in enumerate(search_method_indicies):
-            if index not in combined_dict:
-                combined_dict[index] = 0
-            combined_dict[index] += 1 / (rank + 1)
-
-    return combined_dict
 
 
 class SearchEngine:
 
-    def __init__(self, static = False):
+    FUZZY_SEARCH = 0
+    FAISS_SEARCH = 1
+    BM25_SEARCH = 2
+
+
+    def __init__(self, static=False):
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -44,13 +38,12 @@ class SearchEngine:
             tokenized_corpus = [str(corpus).split() for corpus in self.products_df['model_text'].to_list()]
             self.bm25 = BM25Okapi(tokenized_corpus)
 
-
             print('Loading model...')
             self.model = SentenceTransformer('all-MiniLM-L6-v2')
 
         # print(self.products_df.head())
 
-    def fuzzy_search(self,query, top_k = 10):
+    def fuzzy_search(self, query, top_k=10):
         code_matchs = process.extract(query, self.products_df['product_code'].to_list(), limit=top_k)
 
         relevant_codes = {code for code, score, _ in code_matchs if score >= 80}
@@ -66,15 +59,15 @@ class SearchEngine:
                 #     item = items_df.iloc[idx].to_dict()
                 #     items.append(item)
 
-            return self.get_items(item_indicies)
+            return item_indicies
         return None
 
-    def faiss_search(self,query,top_k):
+    def faiss_search(self, query, top_k):
 
         query_vector = self.model.encode([query])
 
         # print('Searching...')
-        distances, faiss_indices_nested = self.index.search(query_vector,top_k)
+        distances, faiss_indices_nested = self.index.search(query_vector, top_k)
         faiss_indices = faiss_indices_nested[0]
         # print(f'{distances = }')
 
@@ -88,8 +81,7 @@ class SearchEngine:
 
         return filtered_faiss_indices
 
-
-    def bm25_search(self,query,top_k):
+    def bm25_search(self, query, top_k):
 
         tokenized_query = query.split()
         bm25_scores = self.bm25.get_scores(tokenized_query)
@@ -104,8 +96,28 @@ class SearchEngine:
 
         return filtered_bm25_indices
 
+    def combine_indicies(self, search_method_indicies_list):
 
-    def multi_vendor_search(self,combined_indicies):
+        combined_dict = {}
+
+        for search_type, search_method_indicies in enumerate(search_method_indicies_list):
+            if not search_method_indicies:
+                continue
+
+            for rank, index in enumerate(search_method_indicies):
+                if index not in combined_dict:
+                    combined_dict[index] = 0
+                combined_dict[index] += 1 / (rank + 1)
+
+                if self.products_df.iloc[index]['in_stock'] == True:
+                    combined_dict[index] += 0.5
+
+                if search_type == self.FUZZY_SEARCH:
+                    combined_dict[index] += 1
+
+        return combined_dict
+
+    def multi_vendor_search(self, combined_indicies):
 
         expanded_indices = {}
 
@@ -120,7 +132,6 @@ class SearchEngine:
                     expanded_indices[idx] = rank
 
         return expanded_indices
-
 
     def get_items(self, indices):
         items = []
@@ -141,24 +152,41 @@ class SearchEngine:
 
         return items
 
-    def search_query(self,query, top_k = 5):
+    def filter_in_stock(self, items: list[dict]):
+        in_stock_items = []
+
+        for item in items:
+            if item['in_stock'] == True:
+                in_stock_items.append(item)
+
+        return in_stock_items
+
+    def filter_price(self,items :list[dict], min_price:int = 0, max_price : int = 999999):
+
+        valid_items = []
+
+        for item in items:
+            item_price = item['price']
+            if min_price <= item_price <= max_price:
+                valid_items.append(item)
+
+        return valid_items
 
 
-        items = self.fuzzy_search(query,top_k)
+    def search_query(self, query: str, top_k: int = 5, in_stock_only: bool = True, min_price: int = 0,
+                     max_price: int = 999999):
 
-        if items:
-            return items
+        fuzzy_indicies = self.fuzzy_search(query, top_k)
 
         query = query.lower()
 
-
         # print('Embeddings query...')
 
-        faiss_indices = self.faiss_search(query,top_k)
+        faiss_indices = self.faiss_search(query, top_k)
 
-        bm25_indices = self.bm25_search(query,top_k)
+        bm25_indices = self.bm25_search(query, top_k)
 
-        combined_indicies = combine_indicies([faiss_indices, bm25_indices])
+        combined_indicies = self.combine_indicies([fuzzy_indicies,faiss_indices, bm25_indices])
 
         expanded_indices = self.multi_vendor_search(combined_indicies)
 
@@ -166,10 +194,15 @@ class SearchEngine:
 
         items = self.get_items(ranked_indices)
 
-        return items
+        items = self.filter_price(items, min_price, max_price)
 
+        if in_stock_only:
+            in_stock_items = self.filter_in_stock(items)
+            return in_stock_items
+        else:
+            return items
 
-    def search_static(self,query,top_k = 5):
+    def search_static(self, query, top_k=5):
 
         indicies_list = list(range(top_k))
 
@@ -177,10 +210,12 @@ class SearchEngine:
 
         return items
 
+
 if __name__ == '__main__':
 
     se = SearchEngine()
     top_k = 5
+    in_stock_only = True
 
     while True:
         query = input('> ')
@@ -188,9 +223,12 @@ if __name__ == '__main__':
             quit()
         elif query == '.':
             top_k = int(input('new top_k >  '))
+        elif query == ',':
+            in_stock_only = not in_stock_only
+            print(f'{in_stock_only = }')
 
         else:
-            items = se.search_query(query, top_k=top_k)
+            items = se.search_query(query, top_k=top_k, in_stock_only=in_stock_only)
 
             for item in items:
                 print(item)

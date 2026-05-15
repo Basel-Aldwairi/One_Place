@@ -83,7 +83,8 @@ def preprocess_file(file_path):
     df = pd.read_csv(file_path)
 
     # Filter out all the out-of-stock products
-    valid_df = df[df['in_stock'] == True].copy()
+    # valid_df = df[df['in_stock'] == True].copy()
+    valid_df = df.copy()
 
     # Ensure the price is of type float64
     valid_df['price'] = valid_df['price'].astype(np.float64)
@@ -96,7 +97,7 @@ def preprocess_file(file_path):
     # Drop the 'in_stock' and 'currency' columns
     # 'in_stock', has been used for filtering
     # 'currency', all prices are in JOD during scraping
-    valid_df = valid_df.drop(columns=['in_stock', 'currency'])
+    valid_df = valid_df.drop(columns=[ 'currency'])
 
     # Lowercasing the 'product_name' and 'brand' columns, to be used in embeddings
     valid_df['product_name'] = valid_df['product_name'].apply(str.lower)
