@@ -22,7 +22,7 @@ electronic and PC parts, showing you exactly who has your item in stock, locally
 st.header("Platform Insights")
 
 col1, col2 = st.columns(2)
-
+# Dummy Values Just to visualize and test the charts
 with col1:
     st.markdown("**Indexed Inventory by Category**")
     chart_data = pd.DataFrame({
