@@ -19,7 +19,7 @@ st.set_page_config(page_title="Search - ONEplace", layout='wide')
 if 'search_engine' not in st.session_state:
     st.session_state['search_engine'] = search_engine.SearchEngine()
 if 'top_k' not in st.session_state:
-    st.session_state['top_k'] = 100
+    st.session_state['top_k'] = 1000
 if 'query' not in st.session_state:
     st.session_state['query'] = ""
 if 'max_concurrent_calls' not in st.session_state:
@@ -48,7 +48,7 @@ st.session_state['min_price'], st.session_state['max_price'] = price_range
 
 # Admin Controls
 with st.sidebar.expander("Admin Controls"):
-    st.session_state['top_k'] = st.slider('Max Results (top_k)', 1, 100, st.session_state['top_k'])
+    st.session_state['top_k'] = st.slider('Max Results (top_k)', 1, 1000, st.session_state['top_k'])
     st.session_state['max_concurrent_calls'] = st.slider('Concurrent Calls', 1, 10,
                                                          st.session_state['max_concurrent_calls'])
 

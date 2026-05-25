@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import os
+import json
+import plotly.express as px
 
 # Page Config must be the first Streamlit command
 st.set_page_config(
@@ -25,20 +27,55 @@ electronic and PC parts, showing you exactly who has your item in stock, locally
 
 st.header("Platform Insights")
 
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+
+
 col1, col2 = st.columns(2)
 # Dummy Values Just to visualize and test the charts
 with col1:
     st.markdown("**Indexed Inventory by Category**")
+    categories = [
+        {'cpu', 'processor'},
+        {'gpu', 'graphics'},
+        {'ram', 'memory'},
+        {'ssd', 'hdd', 'storage'},
+        {'power supply', 'psu'},
+        {'motherboard'},
+    ]
+    count_categories_path = os.path.join(base_dir, 'insight_date/categories_count.json')
+
+    with open(count_categories_path) as f:
+        count_categories = json.load(f)
+
+    category_counts = count_categories['count']
+    category_names = count_categories['categories']
+
+
     chart_data = pd.DataFrame({
-        "Items": [120, 85, 40, 25, 10],
-        "Category": ["GPUs", "CPUs", "Motherboards", "RAM", "Power Supplies"]
+        "Items": category_counts,
+        "Category": category_names
     }).set_index("Category")
     st.bar_chart(chart_data)
 
 with col2:
+
+    brand_count_path = os.path.join(base_dir, 'insight_date/brand_count.json')
+
+    with open(brand_count_path) as f:
+        brand_count = json.load(f)
+
+
+    brand_count_data = {
+        'brands' : brand_count['brands'],
+        'count' : brand_count['count'],
+    }
+
     st.markdown("**Average Price Distribution (JOD)**")
-    hist_data = pd.DataFrame(np.random.normal(250, 50, 100), columns=["Price"])
-    st.line_chart(hist_data)
+
+    pie_data = pd.DataFrame(brand_count_data)
+    pie_chart = px.pie(pie_data, values='count', names='brands')
+    st.plotly_chart(pie_chart)
 
 st.divider()
 
