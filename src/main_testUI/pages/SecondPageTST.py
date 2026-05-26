@@ -4,7 +4,6 @@ import warnings
 from pathlib import Path
 import time
 
-
 # Catch the specific __path__ warnings
 warnings.filterwarnings("ignore", message=".*Accessing.*__path__.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="transformers")
@@ -115,9 +114,7 @@ with cols[1]:
 if search_button:
 
     if search_query:
-
         with st.spinner("Scanning local stores..."):
-
             search_time = time.time()
             st.session_state['query'] = search_query
             products = engine.search_query(
@@ -171,9 +168,9 @@ if st.session_state['has_results']:
                 st.markdown(f"#### {item.get('product_name', 'Unknown Product')}")
 
                 # Description Filtering
-                missing_flags = ['<null>', 'No Description', '_', '', None]
-                current_desc = item.get('product_description')
-                current_specs = item.get('specs')
+                missing_flags = ['<null>', 'No Description', '_', '', None, 'nan']
+                current_desc = str(item.get('product_description'))
+                current_specs = str(item.get('specs'))
 
                 if current_desc in missing_flags:
                     if current_specs in missing_flags:
