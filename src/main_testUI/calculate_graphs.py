@@ -114,7 +114,7 @@ def count_brands():
     cutoff = counts[valid_brands_count]
 
     # Get the brands with the heighest number of products
-    valid_brands = [brand for brand in brand_names if brand_count_search[brand] >= cutoff]
+    valid_brands = [brand for brand in brand_names if brand_count_search[brand] >= cutoff and brand != 'unknown']
 
     # Get the number of products for the filtered brand lists
     valid_counts = [brand_count_search[brand] for brand in valid_brands]
@@ -138,6 +138,112 @@ def count_brands():
     print(f'Saved brand_counts.json')
 
 
+def calculate_in_stock():
+
+    print('Calculating in stock...')
+
+    in_stock_count = len(df[df['in_stock'] == True])
+    out_of_stock_count = len(df) - in_stock_count
+
+    names = ['In Stock', 'Out of Stock']
+    values = [in_stock_count, out_of_stock_count]
+
+    json_dict = {
+        'names': names,
+        'values': values
+    }
+
+    with open('insight_date/in_stock_count.json', 'w') as f:
+        json.dump(json_dict, f)
+
+    print(f'Saved in_stock_counts.json')
+
+def calculate_vendors():
+
+    print('Calculating vendors...')
+
+    vendors = list(df['store'].unique())
+
+    counts = []
+    for vendor in vendors:
+        count = len(df[df['store'] == vendor])
+        counts.append(count)
+
+    json_dict = {
+        'vendors': vendors,
+        'counts': counts
+    }
+
+    with open('insight_date/vendors_count.json', 'w') as f:
+        json.dump(json_dict, f)
+
+    print(f'Saved vendors_counts.json')
+
+
+def calculate_discounts_count():
+
+    print('Calculating discounts...')
+
+    discounts_count = len(df[(df['price'] < df['original_price']) & (df['in_stock'] == True)])
+    not_discounts_count = len(df[df['in_stock'] == True]) - discounts_count
+
+    names = ['Discounts', 'No Discounts']
+    values = [discounts_count, not_discounts_count]
+
+    json_dict = {
+        'names': names,
+        'values': values
+    }
+
+    with open('insight_date/discounts_count.json', 'w') as f:
+        json.dump(json_dict, f)
+
+    print(f'Saved discounts_counts.json')
+
+
+def calculate_discounts_histogram():
+    print('Calculating discounts histogram...')
+
+    discounted_df = df[(df['price'] < df['original_price']) & (df['in_stock'] == True)]
+
+    discounts_count = len(discounted_df)
+    prices = list(discounted_df['price'])
+    discounts = list(discounted_df['original_price'] - prices)
+
+    percentages = []
+
+    for i in range(discounts_count):
+        percentage = (prices[i] - discounts[i]) / 100
+        if percentage > 0:
+            percentages.append(percentage)
+
+    json_dict = {
+        'percentages': percentages
+    }
+
+    with open('insight_date/discounts_histogram.json', 'w') as f:
+        json.dump(json_dict, f)
+
+    print(f'Saved discounts_histogram.json')
+
+
+def in_stock_per_store():
+
+    os_stock = df[(df['store'] == 'Oriental Store') & (df['in_stock'] == True)]
+    os_stock_count = len(os_stock)
+
+    os_count = len(df[df['store'] == 'Oriental Store'])
+
+    print(f'{os_stock_count} Oriental Stores')
+
+    cc_stock = df[(df['store'] == 'City Center') & (df['in_stock'] == True)]
+    cc_stock_count = len(cc_stock)
+
+    cc_count = len(df[df['store'] == 'City Center'])
+
+    print(f'{cc_stock_count} City Centers')
+
+
 if __name__ == '__main__':
 
 
@@ -154,3 +260,18 @@ if __name__ == '__main__':
 
     if option == '2':
         count_brands()
+
+    if option == '3':
+        calculate_in_stock()
+
+    if option == '4':
+        calculate_vendors()
+
+    if option == '5':
+        calculate_discounts_count()
+
+    if option == '6':
+        calculate_discounts_histogram()
+
+    if option == '7':
+        in_stock_per_store()
