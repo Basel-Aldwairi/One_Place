@@ -24,7 +24,7 @@ current_dir = os.path.dirname(os.path.realpath(__file__))
 logo_path = os.path.join(current_dir, "oneplace_logo10.gif")
 
 st.image(logo_path)
-st.markdown("<h2 style='text-align: center;'>Find what you need, exactly where you are!</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center;'>ONEPlace, No Where Else!</h2>", unsafe_allow_html=True)
 st.divider()
 
 st.header("What is ONEplace?")
@@ -158,8 +158,8 @@ st.divider()
 
 st.header("Our Team")
 st.markdown("""
-* **Basel Al-Dwairi** - Lead Developer
-* **Laith Al-Naimat** - UI/UX & Integrations
+* **Basel Al-Dwairi** - Lead Developer - Data/ML Engineer
+* **Laith Al-Naimat** - UI/UX & Integrations - Documentation
 * **Supervised By:** Nadia Al-Rousan
 """)
 
@@ -168,4 +168,4 @@ st.write("")
 col_a, col_b, col_c = st.columns([1, 1, 1])
 with col_b:
     if st.button("Begin Search", use_container_width=True, type="primary"):
-        st.switch_page("pages/SecondPageTST.py")
+        st.switch_page("pages/SearchPage.py")

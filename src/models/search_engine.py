@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import faiss
+from networkx import relabel
 from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
 from rapidfuzz import fuzz, process
@@ -54,7 +55,11 @@ class SearchEngine:
     def fuzzy_search(self, query, top_k=10):
         code_matchs = process.extract(query, self.products_df['product_code'].to_list(), limit=top_k)
 
-        relevant_codes = {code for code, score, _ in code_matchs if score >= 80}
+        relevant_codes = {code : score for code, score, _ in code_matchs if score >= 80}
+
+        # print(relevant_codes)
+        codes_ranked = sorted(relevant_codes.keys(), key= lambda x : relevant_codes[x], reverse=True)
+        # print(codes_ranked)
 
         item_indicies = []
         if relevant_codes:
@@ -190,9 +195,13 @@ class SearchEngine:
 
         # print('Embeddings query...')
 
+        faiss_time = time.time()
         faiss_indices = self.faiss_search(query, top_k)
+        faiss_time = time.time() - faiss_time
 
+        bm25_time = time.time()
         bm25_indices = self.bm25_search(query, top_k)
+        bm25_time = time.time() - bm25_time
 
         combined_indicies = self.combine_indicies([fuzzy_indicies,faiss_indices, bm25_indices])
 
@@ -203,6 +212,9 @@ class SearchEngine:
         items = self.get_items(ranked_indices)
 
         items = self.filter_price(items, min_price, max_price)
+
+        print(f'{faiss_time = }')
+        print(f'{bm25_time = }')
 
         if in_stock_only:
             in_stock_items = self.filter_in_stock(items)

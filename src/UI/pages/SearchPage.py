@@ -42,7 +42,7 @@ def load_engine():
 engine = load_engine()
 
 if 'top_k' not in st.session_state:
-    st.session_state['top_k'] = 1000
+    st.session_state['top_k'] = 100
 if 'query' not in st.session_state:
     st.session_state['query'] = ""
 if 'max_concurrent_calls' not in st.session_state:
@@ -59,6 +59,8 @@ if 'min_price' not in st.session_state:
     st.session_state['min_price'] = 0
 if 'max_price' not in st.session_state:
     st.session_state['max_price'] = 40000
+if 'run_search' not in st.session_state:
+    st.session_state['run_search'] = False
 
 # Filters
 st.sidebar.header("Filters")
@@ -70,14 +72,14 @@ st.session_state['min_price'], st.session_state['max_price'] = price_range
 
 # Admin Controls
 with st.sidebar.expander("Admin Controls"):
-    st.session_state['top_k'] = st.slider('Max Results (top_k)', 1, 1000, st.session_state['top_k'])
+    st.session_state['top_k'] = st.slider('Max Results (top_k)', 1, 100, st.session_state['top_k'])
     st.session_state['max_concurrent_calls'] = st.slider('Concurrent Calls', 1, 10,
                                                          st.session_state['max_concurrent_calls'])
 
 logo_path = os.path.join(current_dir, "../oneplace_logo10.gif")
 
 st.image(logo_path)
-st.title("Search Inventory")
+st.markdown("<h2 style='text-align: center;'>Search Inventory</h2>", unsafe_allow_html=True)
 
 
 # IMAGE ASYNC
@@ -101,17 +103,19 @@ async def fetch_all_images(urls, semaphore_count):
 
 
 def search():
-    pass
+    st.session_state['run_search'] = True
 
 
-cols = st.columns(2)
-with cols[0]:
-    search_query = st.text_input("What are you looking for?", placeholder="e.g., RTX 4090, Ryzen 7...")
+cols = st.columns(3)
 with cols[1]:
-    search_button = st.button("Search")
+    search_query = st.text_input("What are you looking for?", placeholder="e.g., RTX 4090, Ryzen 7...", on_change=search)
+# with cols[1]:
+#     search_button = st.button("Search")
 
 # EXECUTE SEARCH
-if search_button:
+if st.session_state['run_search']:
+
+    st.session_state['run_search'] = False
 
     if search_query:
         with st.spinner("Scanning local stores..."):
@@ -123,7 +127,7 @@ if search_button:
                 st.session_state['in_stock'],
                 min_price=st.session_state['min_price'],
                 max_price=st.session_state['max_price']
-            )
+            )[:50]
 
             search_time = time.time() - search_time
 
@@ -149,70 +153,75 @@ if search_button:
 # DISPLAY RESULTS
 if st.session_state['has_results']:
     st.divider()
-    st.subheader(f"Results for '{st.session_state['query']}'")
 
-    cols = st.columns(3)
+    if st.session_state['products']:
+        st.subheader(f"Results for '{st.session_state['query']}'")
 
-    for index, item in enumerate(st.session_state['products']):
-        col_index = index % 3
+        cols = st.columns(3)
 
-        with cols[col_index]:
-            with st.container(border=True):
+        for index, item in enumerate(st.session_state['products']):
+            col_index = index % 3
 
-                img = st.session_state['downloaded_images'][index]
-                if img:
-                    st.image(img, width="content")
-                else:
-                    st.markdown("*Image unavailable*")
+            with cols[col_index]:
+                with st.container(border=True):
 
-                st.markdown(f"#### {item.get('product_name', 'Unknown Product')}")
-
-                # Description Filtering
-                missing_flags = ['<null>', 'No Description', '_', '', None, 'nan']
-                current_desc = str(item.get('product_description'))
-                current_specs = str(item.get('specs'))
-
-                if current_desc in missing_flags:
-                    if current_specs in missing_flags:
-                        st.markdown("*Go to website to see more info.*")
+                    img = st.session_state['downloaded_images'][index]
+                    if img:
+                        st.image(img, width="content")
                     else:
-                        full_specs = str(current_specs)
-                        if len(full_specs) > 100:
-                            st.markdown(f"{full_specs[:100]}...")
+                        st.markdown("*Image unavailable*")
+
+                    st.markdown(f"#### {item.get('product_name', 'Unknown Product')}")
+
+                    # Description Filtering
+                    missing_flags = ['<null>', 'No Description', '_', '', None, 'nan']
+                    current_desc = str(item.get('product_description'))
+                    current_specs = str(item.get('specs'))
+
+                    if current_desc in missing_flags:
+                        if current_specs in missing_flags:
+                            st.markdown("*Go to website to see more info.*")
                         else:
-                            st.markdown(f"{full_specs}")
-                else:
-                    full_desc = str(current_desc)
-                    if len(full_desc) > 100:
-                        st.markdown(f"{full_desc[:100]}...")
+                            full_specs = str(current_specs)
+                            if len(full_specs) > 100:
+                                st.markdown(f"{full_specs[:100]}...")
+                            else:
+                                st.markdown(f"{full_specs}")
                     else:
-                        st.markdown(full_desc)
+                        full_desc = str(current_desc)
+                        if len(full_desc) > 100:
+                            st.markdown(f"{full_desc[:100]}...")
+                        else:
+                            st.markdown(full_desc)
 
-                in_stock = item.get('in_stock', False)
-                st.text(f'In Stock : {in_stock}')
-                st.divider()
+                    in_stock = item.get('in_stock', False)
+                    st.text(f'In Stock : {in_stock}')
+                    st.divider()
 
-                # HTML/CSS for Price
-                price = item.get('price', 0)
-                original = item.get('original_price', price)
-                store_url = item.get('url', '#')
-                store_name = item.get('store', 'View Store')
+                    # HTML/CSS for Price
+                    price = item.get('price', 0)
+                    original = item.get('original_price', price)
+                    store_url = item.get('url', '#')
+                    store_name = item.get('store', 'View Store')
 
-                if original > price:
-                    pricing_html = f"""
-                    <div style='display: flex; justify-content: space-between; align-items: flex-end;'>
-                        <div>
-                            <span style='color: gray; text-decoration: line-through; font-size: 0.9em;'>{original:.0f} JOD</span><br>
-                            <span style='color: #03C0CE; font-weight: bold; font-size: 1.2em;'>{price:.0f} JOD</span>
+                    if original > price:
+                        pricing_html = f"""
+                        <div style='display: flex; justify-content: space-between; align-items: flex-end;'>
+                            <div>
+                                <span style='color: gray; text-decoration: line-through; font-size: 0.9em;'>{original:.0f} JOD</span><br>
+                                <span style='color: #03C0CE; font-weight: bold; font-size: 1.2em;'>{price:.0f} JOD</span>
+                            </div>
+                            <a href='{store_url}' target='_blank' style='text-decoration: none; color: white; background-color: #03C0CE; padding: 4px 8px; border-radius: 4px; font-size: 0.9em;'>{store_name} ➔</a>
                         </div>
-                        <a href='{store_url}' target='_blank' style='text-decoration: none; color: white; background-color: #03C0CE; padding: 4px 8px; border-radius: 4px; font-size: 0.9em;'>{store_name} ➔</a>
-                    </div>
-                    """
-                else:
-                    pricing_html = f"""
-                    <div style='display: flex; justify-content: space-between; align-items: flex-end;'>
-                        <span style='font-weight: bold; font-size: 1.2em;'>{price:.0f} JOD</span>
-                        <a href='{store_url}' target='_blank' style='text-decoration: none; color: white; background-color: #03C0CE; padding: 4px 8px; border-radius: 4px; font-size: 0.9em;'>{store_name} ➔</a>
-                    </div>
-                    """
-                st.markdown(pricing_html, unsafe_allow_html=True)
+                        """
+                    else:
+                        pricing_html = f"""
+                        <div style='display: flex; justify-content: space-between; align-items: flex-end;'>
+                            <span style='font-weight: bold; font-size: 1.2em;'>{price:.0f} JOD</span>
+                            <a href='{store_url}' target='_blank' style='text-decoration: none; color: white; background-color: #03C0CE; padding: 4px 8px; border-radius: 4px; font-size: 0.9em;'>{store_name} ➔</a>
+                        </div>
+                        """
+                    st.markdown(pricing_html, unsafe_allow_html=True)
+
+    else:
+        st.error(f'No results found for {st.session_state["query"]}')

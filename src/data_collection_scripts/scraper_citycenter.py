@@ -97,7 +97,8 @@ async def scrap_url(session, semaphore, url,  categories=None):
                 'product_code': product_code,
                 'product_name': product_name,
                 'brand': brand,
-                'store': 'City Center',
+                'store': 'City Center'
+                         '',
                 'url': url,
                 'image_url': image_url,
 
