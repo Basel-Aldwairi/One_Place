@@ -55,7 +55,7 @@ class SearchEngine:
     def fuzzy_search(self, query, top_k=10):
         code_matchs = process.extract(query, self.products_df['product_code'].to_list(), limit=top_k)
 
-        relevant_codes = {code : score for code, score, _ in code_matchs if score >= 80}
+        relevant_codes = {code : score for code, score, _ in code_matchs if score >= 90}
 
         # print(relevant_codes)
         codes_ranked = sorted(relevant_codes.keys(), key= lambda x : relevant_codes[x], reverse=True)
@@ -103,10 +103,14 @@ class SearchEngine:
         filtered_bm25_indices = []
         max_score = bm25_scores[bm25_indices[0]]
         accepnted_score = max_score * 0.9
+        accepted_scores = []
+        accepted_scores.append(max_score)
         for index in bm25_indices:
             if bm25_scores[index] > accepnted_score:
                 filtered_bm25_indices.append(index)
+                accepted_scores.append(bm25_scores[index])
 
+        print(f'{accepted_scores = }')
         return filtered_bm25_indices
 
     def combine_indicies(self, search_method_indicies_list):
@@ -187,20 +191,25 @@ class SearchEngine:
 
 
     def search_query(self, query: str, top_k: int = 5, in_stock_only: bool = True, min_price: int = 0,
-                     max_price: int = 999999):
+                     max_price: int = 999999, selected_models = None):
 
-        fuzzy_indicies = self.fuzzy_search(query, top_k)
+        if not selected_models:
+            selected_models = {self.FUZZY_SEARCH, self.FAISS_SEARCH, self.BM25_SEARCH}
+
+        query = query.strip()
+
+        fuzzy_indicies = self.fuzzy_search(query, top_k) if self.FUZZY_SEARCH in selected_models else None
 
         query = query.lower()
 
         # print('Embeddings query...')
 
         faiss_time = time.time()
-        faiss_indices = self.faiss_search(query, top_k)
+        faiss_indices = self.faiss_search(query, top_k) if self.FAISS_SEARCH in selected_models else None
         faiss_time = time.time() - faiss_time
 
         bm25_time = time.time()
-        bm25_indices = self.bm25_search(query, top_k)
+        bm25_indices = self.bm25_search(query, top_k) if self.BM25_SEARCH in selected_models else None
         bm25_time = time.time() - bm25_time
 
         combined_indicies = self.combine_indicies([fuzzy_indicies,faiss_indices, bm25_indices])

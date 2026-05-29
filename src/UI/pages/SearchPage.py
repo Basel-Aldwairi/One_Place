@@ -34,6 +34,31 @@ st.set_page_config(page_title="Search - ONEplace",
                    layout='wide')
 
 
+
+# IMAGE ASYNC
+async def fetch_image(session, url, semaphore):
+    async with semaphore:
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.read()
+                    return Image.open(BytesIO(data))
+                return None
+        except Exception:
+            return None
+
+
+async def fetch_all_images(urls, semaphore_count):
+    semaphore = asyncio.Semaphore(semaphore_count)
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch_image(session, url, semaphore) for url in urls]
+        return await asyncio.gather(*tasks)
+
+
+def search():
+    st.session_state['run_search'] = True
+
+
 @st.cache_resource
 def load_engine():
     return search_engine.SearchEngine()
@@ -61,6 +86,8 @@ if 'max_price' not in st.session_state:
     st.session_state['max_price'] = 40000
 if 'run_search' not in st.session_state:
     st.session_state['run_search'] = False
+if 'selected_models' not in st.session_state:
+    st.session_state['selected_models'] = None
 
 # Filters
 st.sidebar.header("Filters")
@@ -76,34 +103,23 @@ with st.sidebar.expander("Admin Controls"):
     st.session_state['max_concurrent_calls'] = st.slider('Concurrent Calls', 1, 10,
                                                          st.session_state['max_concurrent_calls'])
 
+    models = {
+        'Fuzzy Match' : engine.FUZZY_SEARCH,
+        'FAISS' : engine.FAISS_SEARCH,
+        'BM25' : engine.BM25_SEARCH,
+    }
+    selected_models_string = st.multiselect('Retrieval Models', models)
+    selected_models = [models[model] for model in selected_models_string]
+
+    st.session_state['selected_models'] = selected_models
+
 logo_path = os.path.join(current_dir, "../oneplace_logo10.gif")
 
 st.image(logo_path)
 st.markdown("<h2 style='text-align: center;'>Search Inventory</h2>", unsafe_allow_html=True)
 
 
-# IMAGE ASYNC
-async def fetch_image(session, url, semaphore):
-    async with semaphore:
-        try:
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.read()
-                    return Image.open(BytesIO(data))
-                return None
-        except Exception:
-            return None
 
-
-async def fetch_all_images(urls, semaphore_count):
-    semaphore = asyncio.Semaphore(semaphore_count)
-    async with aiohttp.ClientSession() as session:
-        tasks = [fetch_image(session, url, semaphore) for url in urls]
-        return await asyncio.gather(*tasks)
-
-
-def search():
-    st.session_state['run_search'] = True
 
 
 cols = st.columns(3)
@@ -126,8 +142,9 @@ if st.session_state['run_search']:
                 st.session_state['top_k'],
                 st.session_state['in_stock'],
                 min_price=st.session_state['min_price'],
-                max_price=st.session_state['max_price']
-            )[:50]
+                max_price=st.session_state['max_price'],
+                selected_models=st.session_state['selected_models'],
+            )[:10]
 
             search_time = time.time() - search_time
 
