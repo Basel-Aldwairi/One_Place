@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import faiss
-from networkx import relabel
 from sentence_transformers import SentenceTransformer
 from rank_bm25 import BM25Okapi
 from rapidfuzz import fuzz, process

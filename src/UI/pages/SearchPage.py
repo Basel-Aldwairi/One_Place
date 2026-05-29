@@ -88,6 +88,8 @@ if 'run_search' not in st.session_state:
     st.session_state['run_search'] = False
 if 'selected_models' not in st.session_state:
     st.session_state['selected_models'] = None
+if 'max_results' not in st.session_state:
+    st.session_state['max_results'] = 10
 
 # Filters
 st.sidebar.header("Filters")
@@ -103,6 +105,8 @@ with st.sidebar.expander("Admin Controls"):
     st.session_state['max_concurrent_calls'] = st.slider('Concurrent Calls', 1, 10,
                                                          st.session_state['max_concurrent_calls'])
 
+
+    st.session_state['max_results'] = st.slider('Max Result Count', min_value=1, max_value=50, value=10)
     models = {
         'Fuzzy Match' : engine.FUZZY_SEARCH,
         'FAISS' : engine.FAISS_SEARCH,
@@ -144,7 +148,7 @@ if st.session_state['run_search']:
                 min_price=st.session_state['min_price'],
                 max_price=st.session_state['max_price'],
                 selected_models=st.session_state['selected_models'],
-            )[:10]
+            )[:st.session_state['max_results']]
 
             search_time = time.time() - search_time
 
