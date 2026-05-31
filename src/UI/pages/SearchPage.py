@@ -4,6 +4,8 @@ import warnings
 from pathlib import Path
 import time
 
+from huggingface_hub import resume_inference_endpoint
+
 # Catch the specific __path__ warnings
 warnings.filterwarnings("ignore", message=".*Accessing.*__path__.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="transformers")
@@ -26,8 +28,10 @@ import models.search_engine as search_engine
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
-logo_tab_img_path = os.path.join(current_dir, "../processor_logo.png")
+logo_tab_img_path = os.path.join(current_dir, "../oneplace_tab_logo.png")
 logo_tab_img = Image.open(logo_tab_img_path)
+logo_tab_resize = 0.2
+logo_tab_img = logo_tab_img.resize((int(logo_tab_img.size[0]/logo_tab_resize),int(logo_tab_img.size[1]/logo_tab_resize)))
 
 st.set_page_config(page_title="Search - ONEplace",
                    page_icon=logo_tab_img,
@@ -117,7 +121,11 @@ with st.sidebar.expander("Admin Controls"):
 
     st.session_state['selected_models'] = selected_models
 
-logo_path = os.path.join(current_dir, "../oneplace_logo10.gif")
+logo_path = os.path.join(current_dir, "../oneplace_logo_animated.gif")
+logo = Image.open(logo_path)
+resize = 1.5
+logo = logo.resize((int(logo.size[0]//resize), int(logo.size[1]/resize)))
+
 
 st.image(logo_path)
 st.markdown("<h2 style='text-align: center;'>Search Inventory</h2>", unsafe_allow_html=True)

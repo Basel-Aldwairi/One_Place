@@ -11,7 +11,7 @@ from PIL import Image
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
-logo_tab_img_path = os.path.join(current_dir, "processor_logo.png")
+logo_tab_img_path = os.path.join(current_dir, "oneplace_tab_logo.png")
 logo_tab_img = Image.open(logo_tab_img_path)
 
 st.set_page_config(
@@ -21,7 +21,7 @@ st.set_page_config(
 )
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
-logo_path = os.path.join(current_dir, "oneplace_logo10.gif")
+logo_path = os.path.join(current_dir, "oneplace_logo_animated.gif")
 
 st.image(logo_path)
 st.markdown("<h2 style='text-align: center;'>ONEPlace, No Where Else!</h2>", unsafe_allow_html=True)
