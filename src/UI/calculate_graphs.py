@@ -248,30 +248,34 @@ if __name__ == '__main__':
 
 
     # Option choice
-    option = input('Enter option: ')
+    # option = input('Enter option: ')
 
-    if option == 'h':
-        print('1. count categories')
-        print('2. count vendors')
-        print('3. count brands')
+    options = [str(i) for i in range(1, 8)]
 
-    if option == '1':
-        categories_barchart()
+    for option in options:
 
-    if option == '2':
-        count_brands()
+        if option == 'h':
+            print('1. count categories')
+            print('2. count vendors')
+            print('3. count brands')
 
-    if option == '3':
-        calculate_in_stock()
+        if option == '1':
+            categories_barchart()
 
-    if option == '4':
-        calculate_vendors()
+        if option == '2':
+            count_brands()
 
-    if option == '5':
-        calculate_discounts_count()
+        if option == '3':
+            calculate_in_stock()
 
-    if option == '6':
-        calculate_discounts_histogram()
+        if option == '4':
+            calculate_vendors()
 
-    if option == '7':
-        in_stock_per_store()
+        if option == '5':
+            calculate_discounts_count()
+
+        if option == '6':
+            calculate_discounts_histogram()
+
+        if option == '7':
+            in_stock_per_store()

@@ -5,13 +5,14 @@ import os
 import json
 import plotly.express as px
 from PIL import Image
+import base64
 
 # Page Config must be the first Streamlit command
 
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
-logo_tab_img_path = os.path.join(current_dir, "oneplace_tab_logo.png")
+logo_tab_img_path = os.path.join(current_dir, "tab_logo_cropped.png")
 logo_tab_img = Image.open(logo_tab_img_path)
 
 st.set_page_config(
@@ -20,11 +21,23 @@ st.set_page_config(
     layout='wide',
 )
 
-current_dir = os.path.dirname(os.path.realpath(__file__))
-logo_path = os.path.join(current_dir, "oneplace_logo_animated.gif")
+logo_path = os.path.join(current_dir, "animated_logo_cropped.gif")
 
-st.image(logo_path)
-st.markdown("<h2 style='text-align: center;'>ONEPlace, No Where Else!</h2>", unsafe_allow_html=True)
+# Read and encode the local GIF image to Base64
+with open(logo_path, "rb") as image_file:
+    encoded_string = base64.b64encode(image_file.read()).decode()
+
+# Use HTML/CSS to center the image. You can adjust the width here as well.
+# Using 'display: flex' and 'justify-content: center' perfectly centers the element.
+html_string = f"""
+    <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+        <img src="data:image/gif;base64,{encoded_string}" width="800" style="border-radius: 10px;">
+    </div>
+    <h2 style='text-align: center;'>ONEPlace, No Where Else</h2>
+"""
+
+st.markdown(html_string, unsafe_allow_html=True)
+
 st.divider()
 
 st.header("What is ONEplace?")

@@ -3,8 +3,7 @@ import os
 import warnings
 from pathlib import Path
 import time
-
-from huggingface_hub import resume_inference_endpoint
+import base64
 
 # Catch the specific __path__ warnings
 warnings.filterwarnings("ignore", message=".*Accessing.*__path__.*")
@@ -28,7 +27,7 @@ import models.search_engine as search_engine
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
-logo_tab_img_path = os.path.join(current_dir, "../oneplace_tab_logo.png")
+logo_tab_img_path = os.path.join(current_dir, "../tab_logo_cropped.png")
 logo_tab_img = Image.open(logo_tab_img_path)
 logo_tab_resize = 0.2
 logo_tab_img = logo_tab_img.resize((int(logo_tab_img.size[0]/logo_tab_resize),int(logo_tab_img.size[1]/logo_tab_resize)))
@@ -94,6 +93,8 @@ if 'selected_models' not in st.session_state:
     st.session_state['selected_models'] = None
 if 'max_results' not in st.session_state:
     st.session_state['max_results'] = 10
+if 'col_count' not in st.session_state:
+    st.session_state['col_count'] = 3
 
 # Filters
 st.sidebar.header("Filters")
@@ -101,6 +102,7 @@ st.session_state['in_stock'] = st.sidebar.checkbox('In Stock Only', value=st.ses
 
 prices_ranges = [0, 25, 50, 100, 150, 200, 300, 500, 750, 1000, 1250, 1500, 2000, 4000, 10000, 20000, 45000]
 price_range = st.sidebar.select_slider('Price (JOD)', options=prices_ranges, value=(0, 4000))
+st.session_state['col_count'] = st.sidebar.slider('Number of Columns', value= 3, min_value=1, max_value=10)
 st.session_state['min_price'], st.session_state['max_price'] = price_range
 
 # Admin Controls
@@ -110,7 +112,7 @@ with st.sidebar.expander("Admin Controls"):
                                                          st.session_state['max_concurrent_calls'])
 
 
-    st.session_state['max_results'] = st.slider('Max Result Count', min_value=1, max_value=50, value=10)
+    st.session_state['max_results'] = st.slider('Max Result Count', min_value=1, max_value=100, value=50)
     models = {
         'Fuzzy Match' : engine.FUZZY_SEARCH,
         'FAISS' : engine.FAISS_SEARCH,
@@ -121,14 +123,24 @@ with st.sidebar.expander("Admin Controls"):
 
     st.session_state['selected_models'] = selected_models
 
-logo_path = os.path.join(current_dir, "../oneplace_logo_animated.gif")
-logo = Image.open(logo_path)
-resize = 1.5
-logo = logo.resize((int(logo.size[0]//resize), int(logo.size[1]/resize)))
 
 
-st.image(logo_path)
-st.markdown("<h2 style='text-align: center;'>Search Inventory</h2>", unsafe_allow_html=True)
+logo_path = os.path.join(current_dir, "../animated_logo_cropped.gif")
+
+# Read and encode the local GIF image to Base64
+with open(logo_path, "rb") as image_file:
+    encoded_string = base64.b64encode(image_file.read()).decode()
+
+# Use HTML/CSS to center the image. You can adjust the width here as well.
+# Using 'display: flex' and 'justify-content: center' perfectly centers the element.
+html_string = f"""
+    <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+        <img src="data:image/gif;base64,{encoded_string}" width="800" style="border-radius: 10px;">
+    </div>
+    <h2 style='text-align: center;'>Search Inventory</h2>
+"""
+
+st.markdown(html_string, unsafe_allow_html=True)
 
 
 
@@ -144,6 +156,9 @@ with cols[1]:
 if st.session_state['run_search']:
 
     st.session_state['run_search'] = False
+
+    products = []
+    downloaded_images = []
 
     if search_query:
         with st.spinner("Scanning local stores..."):
@@ -186,10 +201,12 @@ if st.session_state['has_results']:
     if st.session_state['products']:
         st.subheader(f"Results for '{st.session_state['query']}'")
 
-        cols = st.columns(3)
+        col_count = st.session_state['col_count']
+
+        cols = st.columns(col_count)
 
         for index, item in enumerate(st.session_state['products']):
-            col_index = index % 3
+            col_index = index % col_count
 
             with cols[col_index]:
                 with st.container(border=True):

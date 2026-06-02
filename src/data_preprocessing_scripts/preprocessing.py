@@ -158,7 +158,8 @@ def combine_preprocess(paths_list):
 if __name__ == '__main__':
     paths_list = [
         ('City Center','../../data/citycenter/city_center_products.csv'),
-        ('Oriental Store','../../data/oriental_store/oriental_store_products.csv')
+        ('Oriental Store','../../data/oriental_store/oriental_store_products.csv'),
+        ('Compu Jordan', '../../data/compujordan/compujordan_products.csv'),
     ]
 
     # Calculate time of the preprocessing and combinations step
