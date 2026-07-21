@@ -3,6 +3,8 @@ import numpy as np
 import ast
 import time
 
+from database.database import Database
+
 
 # Cleaning Specs columns
 # Turn a string of a dictionary into a string that can be used to calculate the embedding vector
@@ -176,3 +178,12 @@ if __name__ == '__main__':
     # Saving the finalized DataFrame
     finalized_file_path = '../../data/all/all_products.csv'
     combined_df.to_csv(finalized_file_path)
+
+    db_time = time.time()
+
+    db = Database()
+    db.delete_all()
+    db.push_all()
+
+    db_time = time.time() - db_time
+    print(f'Saved all products in {db_time:.5f} seconds')
