@@ -54,23 +54,23 @@ STORES = {
         name='Compu Jordan',
         crawler_module=crawler_compujordan,
         scraper_module=scraper_compujordan,
-        crawl_csv_path='../../data/compujordan/compujordan_crawl.csv',
-        products_csv_path='../../data/compujordan/compujordan_products.csv',
+        crawl_csv_path='data/compujordan/compujordan_crawl.csv',
+        products_csv_path='data/compujordan/compujordan_products.csv',
     ),
     'os': Store(
         name='Oriental Store',
         crawler_module=crawler_orientalstore,
         scraper_module=scraper_orientalstore,
-        crawl_csv_path='../../data/oriental_store/oriental_store_crawl.csv',
-        products_csv_path='../../data/oriental_store/oriental_store_products.csv'
+        crawl_csv_path='data/oriental_store/oriental_store_crawl.csv',
+        products_csv_path='data/oriental_store/oriental_store_products.csv'
     ),
 
     'cc': Store(
         name='City Center',
         crawler_module=crawler_citycenter,
         scraper_module=scraper_citycenter,
-        crawl_csv_path='../../data/citycenter/city_center_crawl.csv',
-        products_csv_path='../../data/citycenter/city_center_products.csv'
+        crawl_csv_path='data/citycenter/city_center_crawl.csv',
+        products_csv_path='data/citycenter/city_center_products.csv'
     ),
 }
 

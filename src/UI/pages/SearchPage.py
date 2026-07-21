@@ -5,6 +5,8 @@ from pathlib import Path
 import time
 import base64
 
+from transformers.models.slanet import modeling_slanet
+
 # Catch the specific __path__ warnings
 warnings.filterwarnings("ignore", message=".*Accessing.*__path__.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="transformers")
@@ -57,6 +59,9 @@ async def fetch_all_images(urls, semaphore_count):
         tasks = [fetch_image(session, url, semaphore) for url in urls]
         return await asyncio.gather(*tasks)
 
+def rerun_on_change():
+    st.session_state['run_search'] = True
+    # st.rerun()
 
 def search():
     st.session_state['run_search'] = True
@@ -98,18 +103,18 @@ if 'col_count' not in st.session_state:
 
 # Filters
 st.sidebar.header("Filters")
-st.session_state['in_stock'] = st.sidebar.checkbox('In Stock Only', value=st.session_state['in_stock'])
+st.session_state['in_stock'] = st.sidebar.checkbox('In Stock Only', value=st.session_state['in_stock'], on_change=rerun_on_change)
 
 prices_ranges = [0, 25, 50, 100, 150, 200, 300, 500, 750, 1000, 1250, 1500, 2000, 4000, 10000, 20000, 45000]
-price_range = st.sidebar.select_slider('Price (JOD)', options=prices_ranges, value=(0, 4000))
-st.session_state['col_count'] = st.sidebar.slider('Number of Columns', value= 3, min_value=1, max_value=10)
+price_range = st.sidebar.select_slider('Price (JOD)', options=prices_ranges, value=(0, 4000),on_change=rerun_on_change )
+st.session_state['col_count'] = st.sidebar.slider('Number of Columns', value= 3, min_value=1, max_value=10, on_change=rerun_on_change)
 st.session_state['min_price'], st.session_state['max_price'] = price_range
 
 # Admin Controls
 with st.sidebar.expander("Admin Controls"):
-    st.session_state['top_k'] = st.slider('Max Results (top_k)', 1, 100, st.session_state['top_k'])
+    st.session_state['top_k'] = st.slider('Max Results (top_k)', 1, 100, st.session_state['top_k'],on_change=rerun_on_change)
     st.session_state['max_concurrent_calls'] = st.slider('Concurrent Calls', 1, 10,
-                                                         st.session_state['max_concurrent_calls'])
+                                                         st.session_state['max_concurrent_calls'],on_change=rerun_on_change)
 
 
     st.session_state['max_results'] = st.slider('Max Result Count', min_value=1, max_value=100, value=50)
@@ -118,7 +123,7 @@ with st.sidebar.expander("Admin Controls"):
         'FAISS' : engine.FAISS_SEARCH,
         'BM25' : engine.BM25_SEARCH,
     }
-    selected_models_string = st.multiselect('Retrieval Models', models)
+    selected_models_string = st.multiselect('Retrieval Models', models, default=models, on_change=rerun_on_change)
     selected_models = [models[model] for model in selected_models_string]
 
     st.session_state['selected_models'] = selected_models

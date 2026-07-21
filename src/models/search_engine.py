@@ -7,13 +7,20 @@ from rapidfuzz import fuzz, process
 import os
 import time
 
+from pathlib import Path
+import sys
 
+root_path = Path(__file__).resolve().parents[2]
+if str(root_path) not in sys.path:
+    sys.path.append(str(root_path))
+
+from database.database import Database
 
 class SearchEngine:
 
     FUZZY_SEARCH = 0
     FAISS_SEARCH = 1
-    BM25_SEARCH = 2
+    BM25_SEARCH = 2.01
 
 
     def __init__(self, static=False):
@@ -22,11 +29,12 @@ class SearchEngine:
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
-        csv_path = os.path.join(base_dir, '..', '..', 'data', 'all', 'all_products.csv')
         embeddings_path = os.path.join(base_dir, '..', '..', 'data', 'all', 'embeddings.npy')
         model_path = os.path.join(base_dir, '..', 'models', 'embeddings_model')
 
-        self.products_df = pd.read_csv(csv_path)
+        database = Database()
+
+        self.products_df = database.pull_all()
 
         if not static:
             print('Reading files...')
